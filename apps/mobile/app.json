@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "CookMark",
+    "slug": "cookmark",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FF9500"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cookmark.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FF9500"
+      },
+      "package": "com.cookmark.app"
+    },
+    "scheme": "cookmark",
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ]
+  }
+}
