@@ -22,7 +22,7 @@ export default function Landing() {
         <h1 style={{ fontSize: 36, fontWeight: 700, color: '#fff', letterSpacing: '-1px', position: 'relative', marginBottom: 8 }}>
           Cookmark
         </h1>
-        <p style={{ fontSize: 16, color: '#fff99', position: 'relative', maxWidth: 400, margin: '0 auto 28px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', position: 'relative', maxWidth: 400, margin: '0 auto 28px', lineHeight: 1.5 }}>
           Clip recipes, plan meals
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', position: 'relative' }}>
@@ -44,8 +44,12 @@ export default function Landing() {
             <Link key={f.href} href={f.href} style={{
               padding: 20, borderRadius: 16, background: 'var(--ios-bg2)',
               boxShadow: 'var(--ios-shadow)',
-              textDecoration: 'none', transition: 'transform 0.2s ease',
-            }}>
+              textDecoration: 'none',
+              transition: 'transform var(--ios-transition, 0.25s cubic-bezier(0.25,0.1,0.25,1)), box-shadow var(--ios-transition, 0.25s cubic-bezier(0.25,0.1,0.25,1))',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--ios-shadow-hover)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--ios-shadow)'; }}
+            >
               <div style={{ fontSize: 28, marginBottom: 8 }}>{f.icon}</div>
               <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ios-label)', marginBottom: 4 }}>{f.label}</div>
               <div style={{ fontSize: 13, color: 'var(--ios-label3)', lineHeight: 1.4 }}>{f.desc}</div>
