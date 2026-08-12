@@ -1,34 +1,40 @@
-'use client';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { getRecipe, recipes } from '../../../lib/recipes';
 
-export default function RecipeDetailPage() {
+export function generateStaticParams() {
+  return recipes.map(({ id }) => ({ id }));
+}
+
+export default function RecipeDetailPage({ params }: { params: { id: string } }) {
+  const recipe = getRecipe(params.id);
+
+  if (!recipe) notFound();
+
   return (
     <div style={{ background: 'var(--ios-bg)', minHeight: '100vh' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '60px 16px 40px' }}>
-        <Link href="/" style={{ fontSize: 14, color: 'var(--ios-blue)', marginBottom: 16, display: 'inline-block' }}>← Back</Link>
-        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--ios-label)', marginBottom: 8 }}>Recipe Detail</h1>
-        <p style={{ fontSize: 15, color: 'var(--ios-label3)', marginBottom: 24 }}>
-          Recipe Detail for Cookmark — coming soon with full functionality.
-        </p>
+        <Link href="/recipes" style={{ fontSize: 14, color: 'var(--ios-blue)', marginBottom: 16, display: 'inline-block' }}>← All recipes</Link>
+        <article style={{ padding: 24, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}>
+          <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 12 }}>{recipe.emoji}</div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--ios-label)', marginBottom: 8 }}>{recipe.title}</h1>
+          <p style={{ fontSize: 14, color: 'var(--ios-label3)', marginBottom: 24 }}>{recipe.time} · {recipe.servings} servings · {recipe.tags.join(' · ')}</p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} style={{
-              borderRadius: 16, overflow: 'hidden', background: 'var(--ios-bg2)',
-              boxShadow: 'var(--ios-shadow)',
-            }}>
-              <div style={{ height: 120, background: 'linear-gradient(135deg, hsl(' + (i * 51) + ', 40%, 85%) 0%, hsl(' + ((i * 51) + 30) + ', 45%, 80%) 100%)' }} />
-              <div style={{ padding: 14 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ios-label)', marginBottom: 4 }}>
-                  Recipe Detail Item {i}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ios-label3)' }}>
-                  Added {i}d ago
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Ingredients</h2>
+          <ul style={{ margin: '0 0 24px 20px', color: 'var(--ios-label2)' }}>
+            {recipe.ingredients.map(ingredient => <li key={ingredient} style={{ padding: '5px 0' }}>{ingredient}</li>)}
+          </ul>
+
+          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Directions</h2>
+          <ol style={{ listStyle: 'none' }}>
+            {recipe.steps.map((step, index) => (
+              <li key={step} style={{ display: 'flex', gap: 12, marginBottom: 14, color: 'var(--ios-label2)', lineHeight: 1.5 }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--ios-blue)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>{index + 1}</span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </article>
       </div>
     </div>
   );
