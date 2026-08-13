@@ -24,3 +24,39 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif; background: var(--ios-bg); color: var(--ios-label); -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
+
+
+/* ============================================================
+   PAGE TRANSITIONS & SCROLL POLISH
+   ============================================================ */
+
+@keyframes cookmark-slide-in-right {
+  0% { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes cookmark-slide-in-left {
+  0% { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.cookmark-enter-right { animation: cookmark-slide-in-right 0.38s cubic-bezier(0.22,1,0.36,1) both; }
+.cookmark-enter-left { animation: cookmark-slide-in-left 0.38s cubic-bezier(0.22,1,0.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cookmark-enter-right, .cookmark-enter-left {
+    animation: none;
+  }
+}
+
+html {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  transition: box-shadow 120ms ease-out, outline-color 120ms ease-out;
+}
