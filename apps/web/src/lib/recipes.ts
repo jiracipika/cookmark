@@ -23,3 +23,104 @@ export const recipes: Recipe[] = [
 export function getRecipe(id: string) {
   return recipes.find((recipe) => recipe.id === id);
 }
+
+/* ── Saved (clipped) recipes ─────────────────────────────────────────── */
+
+const CUSTOM_KEY = 'cookmark-custom-recipes';
+
+export function loadCustomRecipes(): Recipe[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomRecipe(recipe: Recipe): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const next = [recipe, ...loadCustomRecipes()].slice(0, 50);
+    window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(next));
+  } catch {
+    // Storage full or blocked — clipping silently unavailable.
+  }
+}
+
+/** All built-in recipes plus any clipped ones (client-side). */
+export function getAllRecipes(): Recipe[] {
+  return [...loadCustomRecipes(), ...recipes];
+}
+
+/* ── Planner storage ─────────────────────────────────────────────────── */
+
+export type WeekPlan = Record<string, Record<string, string>>; // day -> meal -> recipeId | ''
+
+const PLAN_KEY = 'cookmark-week-plan';
+
+export function loadWeekPlan(): WeekPlan {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(PLAN_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveWeekPlan(plan: WeekPlan): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+/* ── Grocery list generation ─────────────────────────────────────────── */
+
+const AISLE_KEYWORDS: [RegExp, string][] = [
+  [/chicken|beef|pork|shrimp|steak/i, 'Meat'],
+  [/milk|cheese|parmesan|feta|butter|cream|egg/i, 'Dairy'],
+  [/banana|avocado|tomato|lettuce|onion|garlic|lemon|cucumber|pepper|apple/i, 'Produce'],
+  [/bread|bun|tortilla/i, 'Bakery'],
+  [/ice cream|frozen/i, 'Frozen'],
+];
+
+export function guessAisle(ingredient: string): string {
+  for (const [pattern, aisle] of AISLE_KEYWORDS) {
+    if (pattern.test(ingredient)) return aisle;
+  }
+  return 'Pantry';
+}
+
+/**
+ * Build a grocery list from a week plan. Deterministic order, deduped by
+ * normalized ingredient name. Returns {name, aisle} pairs keyed for
+ * direct merge into the grocery list store.
+ */
+export function generateGroceryFromPlan(
+  plan: WeekPlan,
+  catalog: Recipe[],
+): { id: string; name: string; aisle: string }[] {
+  const seen = new Map<string, { id: string; name: string; aisle: string }>();
+  for (const meals of Object.values(plan)) {
+    for (const recipeId of Object.values(meals)) {
+      if (!recipeId) continue;
+      const recipe = catalog.find((r) => r.id === recipeId);
+      if (!recipe) continue;
+      for (const ingredient of recipe.ingredients) {
+        const key = ingredient.trim().toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.set(key, {
+          id: `gen-${key.replace(/[^a-z0-9]+/g, '-')}`,
+          name: ingredient,
+          aisle: guessAisle(ingredient),
+        });
+      }
+    }
+  }
+  return Array.from(seen.values());
+}

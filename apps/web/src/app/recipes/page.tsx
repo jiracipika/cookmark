@@ -1,13 +1,19 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { recipes } from '../../lib/recipes';
+import { getAllRecipes, recipes, type Recipe } from '../../lib/recipes';
 
 export default function Recipes() {
   const [search, setSearch] = useState('');
   const [tag, setTag] = useState('All');
-  const allTags = ['All', ...new Set(recipes.flatMap(r => r.tags))];
-  const filtered = recipes.filter(r => {
+  // Built-in + clipped recipes; re-read on focus so a fresh clip appears
+  // when the user navigates back without a full reload.
+  const [all, setAll] = useState<Recipe[]>(recipes);
+  useEffect(() => {
+    setAll(getAllRecipes());
+  }, []);
+  const allTags = ['All', ...Array.from(new Set(all.flatMap(r => r.tags)))];
+  const filtered = all.filter(r => {
     if (tag !== 'All' && !r.tags.includes(tag)) return false;
     if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
