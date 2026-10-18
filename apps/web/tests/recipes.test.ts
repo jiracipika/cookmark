@@ -11,10 +11,13 @@ vi.stubGlobal('window', {
 });
 
 import {
+  deleteCustomRecipe,
   generateGroceryFromPlan,
   getAllRecipes,
   getRecipe,
+  findRecipe,
   guessAisle,
+  isCustomRecipeId,
   loadCustomRecipes,
   loadWeekPlan,
   saveCustomRecipe,
@@ -107,5 +110,46 @@ describe('custom recipes + planner storage', () => {
   it('getRecipe finds built-ins by id', () => {
     expect(getRecipe('r3')?.title).toBe('Chicken Stir Fry');
     expect(getRecipe('nope')).toBeUndefined();
+  });
+});
+
+describe('clipped recipe lookup + removal', () => {
+  const clip: Recipe = {
+    id: 'clip-123', title: 'Clipped Curry', time: '—', servings: 2,
+    tags: ['Clipped'], emoji: '🍽️', ingredients: ['flour', 'salt'], steps: ['bake'],
+  };
+
+  it('findRecipe resolves clipped recipes that getRecipe misses', () => {
+    expect(getRecipe('clip-123')).toBeUndefined();
+    expect(findRecipe('clip-123')).toBeUndefined();
+    saveCustomRecipe(clip);
+    expect(findRecipe('clip-123')?.title).toBe('Clipped Curry');
+  });
+
+  it('findRecipe still resolves built-ins with custom ones present', () => {
+    saveCustomRecipe(clip);
+    expect(findRecipe('r1')?.title).toBe('Creamy Garlic Pasta');
+  });
+
+  it('isCustomRecipeId distinguishes clipped ids from built-ins', () => {
+    expect(isCustomRecipeId('clip-123')).toBe(true);
+    expect(isCustomRecipeId('r1')).toBe(false);
+  });
+
+  it('deleteCustomRecipe removes only the targeted clip', () => {
+    saveCustomRecipe(clip);
+    saveCustomRecipe({ ...clip, id: 'clip-456', title: 'Second Clip' });
+    deleteCustomRecipe('clip-123');
+    expect(findRecipe('clip-123')).toBeUndefined();
+    expect(findRecipe('clip-456')?.title).toBe('Second Clip');
+    expect(loadCustomRecipes().length).toBe(1);
+  });
+
+  it('deleting a non-clipped or unknown id is a no-op that leaves built-ins intact', () => {
+    saveCustomRecipe(clip);
+    deleteCustomRecipe('r1');
+    deleteCustomRecipe('clip-does-not-exist');
+    expect(findRecipe('r1')).toBeDefined();
+    expect(findRecipe('clip-123')).toBeDefined();
   });
 });

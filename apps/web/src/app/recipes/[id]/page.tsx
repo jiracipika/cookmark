@@ -1,15 +1,48 @@
+'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { getRecipe, recipes } from '../../../lib/recipes';
-
-export function generateStaticParams() {
-  return recipes.map(({ id }) => ({ id }));
-}
+import { deleteCustomRecipe, findRecipe, isCustomRecipeId, type Recipe } from '../../../lib/recipes';
 
 export default function RecipeDetailPage({ params }: { params: { id: string } }) {
-  const recipe = getRecipe(params.id);
+  // Clipped recipes live in localStorage, so lookup has to wait for the
+  // client; built-ins resolve on the first effect pass.
+  const [recipe, setRecipe] = useState<Recipe | null | undefined>(undefined);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
-  if (!recipe) notFound();
+  useEffect(() => {
+    setRecipe(findRecipe(params.id));
+  }, [params.id]);
+
+  if (recipe === undefined) {
+    return (
+      <div style={{ background: 'var(--ios-bg)', minHeight: '100vh' }} />
+    );
+  }
+
+  if (recipe === null) {
+    return (
+      <div style={{ background: 'var(--ios-bg)', minHeight: '100vh' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', padding: '60px 16px 40px' }}>
+          <Link href="/recipes" style={{ fontSize: 14, color: 'var(--ios-blue)', marginBottom: 16, display: 'inline-block' }}>← All recipes</Link>
+          <div style={{ padding: 32, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)', textAlign: 'center' }}>
+            <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 8 }}>🤔</div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ios-label)', marginBottom: 8 }}>Recipe not found</h1>
+            <p style={{ fontSize: 14, color: 'var(--ios-label3)' }}>It may have been removed from this device.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isCustom = isCustomRecipeId(recipe.id);
+  const remove = () => {
+    if (!confirmingRemove) {
+      setConfirmingRemove(true);
+      return;
+    }
+    deleteCustomRecipe(recipe.id);
+    window.location.href = '/recipes';
+  };
 
   return (
     <div style={{ background: 'var(--ios-bg)', minHeight: '100vh' }}>
@@ -34,6 +67,21 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               </li>
             ))}
           </ol>
+
+          {isCustom && (
+            <button
+              onClick={remove}
+              aria-label={confirmingRemove ? 'Confirm removing this clipped recipe' : 'Remove this clipped recipe'}
+              style={{
+                marginTop: 8, padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                border: '1px solid var(--ios-separator)', cursor: 'pointer',
+                background: confirmingRemove ? 'var(--ios-red)' : 'var(--ios-bg)',
+                color: confirmingRemove ? '#fff' : 'var(--ios-red)',
+              }}
+            >
+              {confirmingRemove ? 'Tap again to remove' : 'Remove from My Recipes'}
+            </button>
+          )}
         </article>
       </div>
     </div>

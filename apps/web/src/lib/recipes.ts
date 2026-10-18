@@ -24,6 +24,16 @@ export function getRecipe(id: string) {
   return recipes.find((recipe) => recipe.id === id);
 }
 
+/** Built-ins first, then clipped recipes (client-side). */
+export function findRecipe(id: string) {
+  return getRecipe(id) ?? loadCustomRecipes().find((recipe) => recipe.id === id);
+}
+
+/** True when the id points at a clipped (user-saved) recipe. */
+export function isCustomRecipeId(id: string): boolean {
+  return id.startsWith('clip-');
+}
+
 /* ── Saved (clipped) recipes ─────────────────────────────────────────── */
 
 const CUSTOM_KEY = 'cookmark-custom-recipes';
@@ -46,6 +56,16 @@ export function saveCustomRecipe(recipe: Recipe): void {
     window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(next));
   } catch {
     // Storage full or blocked — clipping silently unavailable.
+  }
+}
+
+export function deleteCustomRecipe(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const next = loadCustomRecipes().filter((recipe) => recipe.id !== id);
+    window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(next));
+  } catch {
+    // Storage unavailable — nothing to persist.
   }
 }
 
