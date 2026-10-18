@@ -1,6 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion, type Variants } from 'motion/react';
+
+const aisleStagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.045 } },
+};
+
+const itemRise: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', bounce: 0.35, duration: 0.5 } },
+};
+
+const itemExit = { opacity: 0, scale: 0.96, transition: { duration: 0.18 } };
 
 const AISLES = ['Produce', 'Dairy', 'Meat', 'Pantry', 'Frozen', 'Bakery', 'Other'];
 const STORE_KEY = 'cookmark-grocery-items';
@@ -97,7 +110,7 @@ export default function Grocery() {
           <select value={newAisle} onChange={e => setNewAisle(e.target.value)} aria-label="Aisle" style={{ padding: 10, borderRadius: 10, border: '1px solid var(--ios-separator)', fontSize: 13, background: 'var(--ios-bg)', color: 'var(--ios-label)' }}>
             {AISLES.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <button onClick={add} style={{ padding: '10px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'var(--ios-green)', color: '#fff' }}>Add</button>
+          <motion.button onClick={add} whileTap={{ scale: 0.95 }} style={{ padding: '10px 16px', borderRadius: 10, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'var(--ios-green)', color: '#fff' }}>Add</motion.button>
         </div>
 
         <div role="progressbar" aria-valuenow={checkedCount} aria-valuemin={0} aria-valuemax={items.length} aria-label="Grocery progress" style={{ height: 6, borderRadius: 3, background: 'var(--ios-bg2)', marginBottom: 24 }}>
@@ -105,13 +118,13 @@ export default function Grocery() {
         </div>
 
         {checkedCount > 0 && (
-          <button onClick={clearChecked} style={{
+          <motion.button onClick={clearChecked} whileTap={{ scale: 0.96 }} style={{
             marginBottom: 16, padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
             border: '1px solid var(--ios-separator)', cursor: 'pointer',
             background: 'var(--ios-bg2)', color: 'var(--ios-red)',
           }}>
             Clear {checkedCount} checked
-          </button>
+          </motion.button>
         )}
 
         {grouped.length === 0 && hydrated && (
@@ -121,37 +134,46 @@ export default function Grocery() {
         )}
 
         {grouped.map(group => (
-          <div key={group.aisle} style={{ marginBottom: 16 }}>
+          <motion.div key={group.aisle} variants={aisleStagger} initial="hidden" animate="show" style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ios-label3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{group.aisle}</div>
-            {group.items.map(item => (
-              <label key={item.id} style={{
-                padding: '12px 14px', borderRadius: 12, background: 'var(--ios-bg2)', marginBottom: 4, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <input
-                  type="checkbox"
-                  checked={item.checked}
-                  onChange={() => toggle(item.id)}
-                  aria-label={`Mark ${item.name} ${item.checked ? 'unpurchased' : 'purchased'}`}
-                  style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
-                />
-                <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 6, border: item.checked ? 'none' : '2px solid var(--ios-separator)', background: item.checked ? 'var(--ios-green)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, flexShrink: 0 }}>
-                  {item.checked ? '✓' : ''}
-                </span>
-                <span style={{ flex: 1, fontSize: 15, color: item.checked ? 'var(--ios-label3)' : 'var(--ios-label)', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.name}</span>
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Remove ${item.name}`}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); remove(item.id); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); remove(item.id); } }}
-                  style={{ padding: '2px 6px', borderRadius: 6, fontSize: 14, color: 'var(--ios-label4)', cursor: 'pointer' }}
+            <AnimatePresence>
+              {group.items.map(item => (
+                <motion.label
+                  key={item.id}
+                  layout
+                  initial="hidden"
+                  variants={itemRise}
+                  exit={itemExit}
+                  style={{
+                    padding: '12px 14px', borderRadius: 12, background: 'var(--ios-bg2)', marginBottom: 4, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                  }}
                 >
-                  ✕
-                </span>
-              </label>
-            ))}
-          </div>
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={() => toggle(item.id)}
+                    aria-label={`Mark ${item.name} ${item.checked ? 'unpurchased' : 'purchased'}`}
+                    style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+                  />
+                  <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: 6, border: item.checked ? 'none' : '2px solid var(--ios-separator)', background: item.checked ? 'var(--ios-green)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, flexShrink: 0 }}>
+                    {item.checked ? '✓' : ''}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 15, color: item.checked ? 'var(--ios-label3)' : 'var(--ios-label)', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.name}</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Remove ${item.name}`}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); remove(item.id); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); remove(item.id); } }}
+                    style={{ padding: '2px 6px', borderRadius: 6, fontSize: 14, color: 'var(--ios-label4)', cursor: 'pointer' }}
+                  >
+                    ✕
+                  </span>
+                </motion.label>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         ))}
       </div>
     </div>

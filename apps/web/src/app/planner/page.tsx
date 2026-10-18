@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion, type Variants } from 'motion/react';
 import {
   generateGroceryFromPlan,
   getAllRecipes,
@@ -8,6 +9,16 @@ import {
   saveWeekPlan,
   type Recipe,
 } from '../../lib/recipes';
+
+const gridStagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.012 } },
+};
+
+const cellRise: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', bounce: 0.3, duration: 0.5 } },
+};
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
@@ -87,7 +98,10 @@ export default function Planner() {
         </p>
 
         <div style={{ overflowX: 'auto' }}>
-          <div
+          <motion.div
+            variants={gridStagger}
+            initial="hidden"
+            animate="show"
             style={{
               display: 'grid',
               gridTemplateColumns: `80px repeat(${DAYS.length}, minmax(92px, 1fr))`,
@@ -100,9 +114,9 @@ export default function Planner() {
           >
             <div style={{ padding: 12, background: 'var(--ios-bg2)', fontWeight: 600, fontSize: 12, color: 'var(--ios-label3)' }} />
             {DAYS.map((d) => (
-              <div key={d} style={{ padding: 12, background: 'var(--ios-bg2)', fontWeight: 600, fontSize: 13, color: 'var(--ios-label)', textAlign: 'center' }}>
+              <motion.div key={d} variants={cellRise} style={{ padding: 12, background: 'var(--ios-bg2)', fontWeight: 600, fontSize: 13, color: 'var(--ios-label)', textAlign: 'center' }}>
                 {d}
-              </div>
+              </motion.div>
             ))}
             {MEALS.map((meal) => (
               <WeeklyRow
@@ -116,7 +130,7 @@ export default function Planner() {
                 onAssign={(day, id) => assign(day, meal, id)}
               />
             ))}
-          </div>
+          </motion.div>
         </div>
 
         <div
@@ -139,9 +153,10 @@ export default function Planner() {
               Adds ingredients from all planned meals to your grocery list.
             </p>
           </div>
-          <button
+          <motion.button
             onClick={addToGrocery}
             disabled={plannedCount === 0}
+            whileTap={plannedCount > 0 ? { scale: 0.96 } : undefined}
             style={{
               padding: '10px 20px',
               borderRadius: 12,
@@ -154,7 +169,7 @@ export default function Planner() {
             }}
           >
             {addedNote ? '✓ Added to Grocery List' : 'Add to Grocery List →'}
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>
@@ -177,15 +192,15 @@ interface WeeklyRowProps {
 function WeeklyRow({ meal, days, plan, catalog, editingMeal, onEdit, onAssign }: WeeklyRowProps) {
   return (
     <>
-      <div style={{ padding: 12, background: 'var(--ios-bg2)', fontWeight: 600, fontSize: 12, color: 'var(--ios-label3)', display: 'flex', alignItems: 'center' }}>
+      <motion.div variants={cellRise} style={{ padding: 12, background: 'var(--ios-bg2)', fontWeight: 600, fontSize: 12, color: 'var(--ios-label3)', display: 'flex', alignItems: 'center' }}>
         {meal}
-      </div>
+      </motion.div>
       {days.map((day) => {
         const isEditing = editingMeal === day;
         const recipeId = plan[day]?.[meal];
         const recipe = catalog.find((r) => r.id === recipeId);
         return (
-          <div key={`${day}-${meal}`} style={{ position: 'relative', minHeight: 64 }}>
+          <motion.div key={`${day}-${meal}`} variants={cellRise} style={{ position: 'relative', minHeight: 64 }}>
             <button
               onClick={() => onEdit(isEditing ? null : day)}
               aria-expanded={isEditing}
@@ -206,15 +221,17 @@ function WeeklyRow({ meal, days, plan, catalog, editingMeal, onEdit, onAssign }:
             >
               {recipe ? `${recipe.emoji} ${recipe.title}` : '+'}
             </button>
-            {isEditing && (
-              <SlotEditor
-                catalog={catalog}
-                currentId={recipeId ?? ''}
-                onPick={(id) => onAssign(day, id)}
-                onClose={() => onEdit(null)}
-              />
-            )}
-          </div>
+            <AnimatePresence>
+              {isEditing && (
+                <SlotEditor
+                  catalog={catalog}
+                  currentId={recipeId ?? ''}
+                  onPick={(id) => onAssign(day, id)}
+                  onClose={() => onEdit(null)}
+                />
+              )}
+            </AnimatePresence>
+          </motion.div>
         );
       })}
     </>
@@ -252,16 +269,20 @@ function SlotEditor({
   }, [onClose]);
 
   return (
-    <div
+    <motion.div
       ref={boxRef}
       role="dialog"
       aria-label="Choose a recipe"
+      initial={{ opacity: 0, scale: 0.94, y: -6, x: '-50%' }}
+      animate={{ opacity: 1, scale: 1, y: 0, x: '-50%' }}
+      exit={{ opacity: 0, scale: 0.96, x: '-50%', transition: { duration: 0.15 } }}
+      transition={{ type: 'spring', bounce: 0.25, duration: 0.4 }}
       style={{
         position: 'absolute',
         zIndex: 20,
         top: 'calc(100% + 4px)',
         left: '50%',
-        transform: 'translateX(-50%)',
+        transformOrigin: 'top center',
         width: 220,
         maxHeight: 240,
         overflowY: 'auto',
@@ -294,6 +315,6 @@ function SlotEditor({
           {r.emoji} {r.title}
         </button>
       ))}
-    </div>
+    </motion.div>
   );
 }

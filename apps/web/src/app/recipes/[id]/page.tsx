@@ -1,7 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import { deleteCustomRecipe, findRecipe, isCustomRecipeId, type Recipe } from '../../../lib/recipes';
+
+const surfaceIn = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { type: 'spring' as const, bounce: 0.3, duration: 0.6 },
+};
 
 export default function RecipeDetailPage({ params }: { params: { id: string } }) {
   // Clipped recipes live in localStorage, so lookup has to wait for the
@@ -24,11 +31,11 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
       <div style={{ background: 'var(--ios-bg)', minHeight: '100vh' }}>
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '60px 16px 40px' }}>
           <Link href="/recipes" style={{ fontSize: 14, color: 'var(--ios-blue)', marginBottom: 16, display: 'inline-block' }}>← All recipes</Link>
-          <div style={{ padding: 32, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)', textAlign: 'center' }}>
+          <motion.div {...surfaceIn} style={{ padding: 32, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)', textAlign: 'center' }}>
             <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 8 }}>🤔</div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ios-label)', marginBottom: 8 }}>Recipe not found</h1>
             <p style={{ fontSize: 14, color: 'var(--ios-label3)' }}>It may have been removed from this device.</p>
-          </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -48,7 +55,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
     <div style={{ background: 'var(--ios-bg)', minHeight: '100vh' }}>
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '60px 16px 40px' }}>
         <Link href="/recipes" style={{ fontSize: 14, color: 'var(--ios-blue)', marginBottom: 16, display: 'inline-block' }}>← All recipes</Link>
-        <article style={{ padding: 24, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}>
+        <motion.article {...surfaceIn} style={{ padding: 24, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}>
           <div aria-hidden="true" style={{ fontSize: 48, marginBottom: 12 }}>{recipe.emoji}</div>
           <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--ios-label)', marginBottom: 8 }}>{recipe.title}</h1>
           <p style={{ fontSize: 14, color: 'var(--ios-label3)', marginBottom: 24 }}>{recipe.time} · {recipe.servings} servings · {recipe.tags.join(' · ')}</p>
@@ -69,8 +76,9 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
           </ol>
 
           {isCustom && (
-            <button
+            <motion.button
               onClick={remove}
+              whileTap={{ scale: 0.97 }}
               aria-label={confirmingRemove ? 'Confirm removing this clipped recipe' : 'Remove this clipped recipe'}
               style={{
                 marginTop: 8, padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 500,
@@ -80,9 +88,9 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               }}
             >
               {confirmingRemove ? 'Tap again to remove' : 'Remove from My Recipes'}
-            </button>
+            </motion.button>
           )}
-        </article>
+        </motion.article>
       </div>
     </div>
   );

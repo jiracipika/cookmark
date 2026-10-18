@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { MotionConfig } from 'motion/react';
 import { useSwipeNav } from '@/hooks/use-swipe-nav';
 
 const SWIPE_ROUTES = ["/", "/recipes", "/planner", "/grocery", "/clip"];
@@ -42,8 +43,10 @@ export default function AppTransitionShell({ children }: { children: React.React
     ? direction > 0 ? 'cookmark-enter-right' : 'cookmark-enter-left' : '';
 
   return (
-    <div key={pathname} className={enterClass} style={transitionStyle}>
-      {children}
-    </div>
+    <MotionConfig reducedMotion="user">
+      <div key={pathname} className={enterClass} style={transitionStyle}>
+        {children}
+      </div>
+    </MotionConfig>
   );
 }

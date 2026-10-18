@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'motion/react';
 import { saveCustomRecipe } from '../../lib/recipes';
 
 export default function Clip() {
@@ -70,17 +71,36 @@ export default function Clip() {
               fontSize: 15, background: 'var(--ios-bg)', color: 'var(--ios-label)', marginBottom: 12, outline: 'none',
             }}
           />
-          <button onClick={extract} disabled={loading || !url.trim()} style={{
+          <motion.button onClick={extract} disabled={loading || !url.trim()} whileTap={url.trim() && !loading ? { scale: 0.98 } : undefined} style={{
             width: '100%', padding: 14, borderRadius: 12, fontSize: 15, fontWeight: 600, border: 'none', cursor: url.trim() && !loading ? 'pointer' : 'default',
             background: loading ? 'var(--ios-separator)' : 'var(--ios-blue)', color: '#fff',
-          }}>{loading ? 'Extracting...' : 'Extract Recipe'}</button>
-          {error && (
-            <p role="alert" style={{ marginTop: 10, fontSize: 13, color: 'var(--ios-red)' }}>{error}</p>
-          )}
+          }}>{loading ? 'Extracting...' : 'Extract Recipe'}</motion.button>
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                key="clip-error"
+                role="alert"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                style={{ marginTop: 10, fontSize: 13, color: 'var(--ios-red)' }}
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
 
-        {result && (
-          <div style={{ padding: 20, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}>
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              key="clip-result"
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.15 } }}
+              transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
+              style={{ padding: 20, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}
+            >
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{result.title}</h2>
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Ingredients</h3>
             {result.ingredients.map((ing) => (
@@ -110,8 +130,9 @@ export default function Clip() {
                 View recipes →
               </Link>
             )}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
