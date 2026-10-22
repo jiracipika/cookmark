@@ -20,6 +20,7 @@ import {
   isCustomRecipeId,
   loadCustomRecipes,
   loadWeekPlan,
+  parseRecipeText,
   saveCustomRecipe,
   saveWeekPlan,
   recipes,
@@ -151,5 +152,70 @@ describe('clipped recipe lookup + removal', () => {
     deleteCustomRecipe('clip-does-not-exist');
     expect(findRecipe('r1')).toBeDefined();
     expect(findRecipe('clip-123')).toBeDefined();
+  });
+});
+
+describe('parseRecipeText', () => {
+  it('parses a full structured recipe with metadata', () => {
+    const parsed = parseRecipeText(
+      'Chicken Adobo\nServes 4 · 45 minutes\n\nIngredients\n- 2 lbs chicken thighs\n- 1/2 cup soy sauce\n- 6 cloves garlic\n\nInstructions\n1. Marinate the chicken.\n2. Simmer for 30 minutes.\n3. Serve over rice.',
+    );
+    expect(parsed.title).toBe('Chicken Adobo');
+    expect(parsed.servings).toBe(4);
+    expect(parsed.time).toBe('45 minutes');
+    expect(parsed.ingredients).toEqual(['2 lbs chicken thighs', '1/2 cup soy sauce', '6 cloves garlic']);
+    expect(parsed.steps).toEqual(['Marinate the chicken.', 'Simmer for 30 minutes.', 'Serve over rice.']);
+  });
+
+  it('handles markdown headers, colon headers, and alternate step-header words', () => {
+    const parsed = parseRecipeText(
+      '# Soup\n\n## Ingredients:\n3 carrots\n2 cups broth\n\n### Method\n Chop carrots \nSimmer 20 min',
+    );
+    expect(parsed.title).toBe('Soup');
+    expect(parsed.ingredients).toEqual(['3 carrots', '2 cups broth']);
+    expect(parsed.steps).toEqual(['Chop carrots', 'Simmer 20 min']);
+  });
+
+  it('classifies section-less text: numbered lines are steps, quantity lines are ingredients', () => {
+    const parsed = parseRecipeText(
+      'Pancakes\n2 cups flour\n2 eggs\n1. Whisk everything.\n2. Fry on a hot pan.',
+    );
+    expect(parsed.title).toBe('Pancakes');
+    expect(parsed.ingredients).toEqual(['2 cups flour', '2 eggs']);
+    expect(parsed.steps).toEqual(['Whisk everything.', 'Fry on a hot pan.']);
+  });
+
+  it('treats bullet lines as ingredients even without a quantity', () => {
+    const parsed = parseRecipeText('Snack plate\n- apple slices\n- cheese\n- crackers');
+    expect(parsed.ingredients).toEqual(['apple slices', 'cheese', 'crackers']);
+    expect(parsed.steps).toEqual([]);
+  });
+
+  it('tolerates CRLF line endings and blank lines', () => {
+    const parsed = parseRecipeText('Tea\r\n\r\nIngredients\r\n\r\n- 1 bag black tea\r\n\r\nSteps\r\n\r\n1. Steep 5 minutes.\r\n');
+    expect(parsed.title).toBe('Tea');
+    expect(parsed.ingredients).toEqual(['1 bag black tea']);
+    expect(parsed.steps).toEqual(['Steep 5 minutes.']);
+  });
+
+  it('returns nulls (not guesses) for missing title, time, and servings', () => {
+    const parsed = parseRecipeText('Ingredients\n- rice\n- beans\nSteps\n1. Cook.');
+    expect(parsed.title).toBeNull();
+    expect(parsed.time).toBeNull();
+    expect(parsed.servings).toBeNull();
+  });
+
+  it('never invents content: empty or unrelated text parses to empty arrays', () => {
+    expect(parseRecipeText('')).toEqual({ title: null, time: null, servings: null, ingredients: [], steps: [] });
+    const parsed = parseRecipeText('Call mom at 5pm');
+    expect(parsed.ingredients).toEqual([]);
+    expect(parsed.steps).toEqual([]);
+    expect(parsed.title).toBe('Call mom at 5pm');
+  });
+
+  it('extracts servings/time wherever they appear in the text', () => {
+    const parsed = parseRecipeText('Steps:\n1. Boil.\nMakes 6 servings and takes 1 hour 15 minutes total.');
+    expect(parsed.servings).toBe(6);
+    expect(parsed.time).toBe('1 hour');
   });
 });

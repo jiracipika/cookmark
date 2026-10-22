@@ -144,3 +144,93 @@ export function generateGroceryFromPlan(
   }
   return Array.from(seen.values());
 }
+
+/* ── Recipe text parsing (clip by paste) ─────────────────────────────── */
+
+export type ParsedRecipe = {
+  title: string | null;
+  time: string | null;
+  servings: number | null;
+  ingredients: string[];
+  steps: string[];
+};
+
+const INGREDIENTS_HEADER = /^(?:#{1,6}\s*)?ingredients\s*:?\s*$/i;
+const STEPS_HEADER = /^(?:#{1,6}\s*)?(?:instructions|directions|steps|method|preparation)\s*:?\s*$/i;
+const BULLET = /^\s*(?:[-*•·]|\d+[.)])\s+/;
+const SERVINGS_LINE = /\b(?:serves|servings?|makes|yields?)\s*[:\-]?\s*(\d{1,3})\b/i;
+const TIME_LINE = /\b(\d{1,3}(?:\s*(?:-|–|to)\s*\d{1,3})?\s*(?:minutes?|mins?|hours?|hrs?))\b/i;
+
+/** True when a section-less line reads like an ingredient (bullets or a leading quantity). Numbered lines read as steps, not ingredients. */
+function looksLikeIngredient(line: string): boolean {
+  if (/^\s*(?:[-*•·])/.test(line)) return true;
+  if (/^\s*\d+[.)]/.test(line)) return false;
+  return /^\s*(?:\d|\d\/\d|½|¼|¾|⅓|⅔)/.test(line) && /\d/.test(line);
+}
+
+function stripBullet(line: string): string {
+  return line.replace(BULLET, '').trim();
+}
+
+/** True for short preamble lines that only state servings or time. */
+function looksLikeMetadata(line: string): boolean {
+  if (line.length > 60) return false;
+  if (BULLET.test(line)) return false;
+  return SERVINGS_LINE.test(line) || /\b\d{1,3}\s*(?:minutes?|mins?|hours?|hrs?)\b/i.test(line);
+}
+
+/**
+ * Parse pasted recipe text into a structured draft. Recognizes
+ * "Ingredients" / "Instructions" (or Directions/Steps/Method/Preparation)
+ * section headers with optional markdown hashes or a trailing colon, strips
+ * bullets and numbering, and pulls servings/time out of the text. Text with
+ * no headers falls back to a per-line heuristic: quantity/bullet lines are
+ * ingredients, everything else is steps, and the first step-looking line
+ * before any ingredient is treated as the title. Returns nulls (not
+ * guesses) when title/time/servings are absent so the UI can decide.
+ */
+export function parseRecipeText(text: string): ParsedRecipe {
+  const normalized = text.replace(/\r\n?/g, '\n');
+  const servingsMatch = normalized.match(SERVINGS_LINE);
+  const timeMatch = normalized.match(TIME_LINE);
+
+  let section: 'unknown' | 'ingredients' | 'steps' = 'unknown';
+  const ingredients: string[] = [];
+  const steps: string[] = [];
+  let title: string | null = null;
+
+  for (const raw of normalized.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (INGREDIENTS_HEADER.test(line)) {
+      section = 'ingredients';
+      continue;
+    }
+    if (STEPS_HEADER.test(line)) {
+      section = 'steps';
+      continue;
+    }
+    if (section === 'ingredients') {
+      ingredients.push(stripBullet(line));
+    } else if (section === 'steps') {
+      steps.push(stripBullet(line));
+    } else if (looksLikeMetadata(line)) {
+      // Serves/time lines belong to the metadata fields, not the steps list.
+      continue;
+    } else if (looksLikeIngredient(line)) {
+      ingredients.push(stripBullet(line));
+    } else if (title === null) {
+      title = line.replace(/^#{1,6}\s+/, '');
+    } else {
+      steps.push(stripBullet(line));
+    }
+  }
+
+  return {
+    title,
+    time: timeMatch ? timeMatch[1].replace(/\s+/g, ' ').toLowerCase() : null,
+    servings: servingsMatch ? parseInt(servingsMatch[1], 10) : null,
+    ingredients: ingredients.filter(Boolean),
+    steps: steps.filter(Boolean),
+  };
+}
